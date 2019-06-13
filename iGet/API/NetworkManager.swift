@@ -45,19 +45,11 @@ extension NetworkManager {
             return nil
         }
         
-        guard let json = try? JSONSerialization.jsonObject(with: data, options: []), let jsonResults = json as? [[String: String]] else {
-            print("Error processing entertainments: failed to convert data to JSON")
+        guard let entertainments = try? JSONDecoder().decode([Entertainment].self, from: data) else {
+            print("Error processing entertainments: failed to convert data via JSONDecoder")
             return nil
         }
         
-        var entertainments = [Entertainment]()
-        
-        for item in jsonResults {
-            guard let stringId = item[Entertainment.Mapping.id], let id = Int(stringId),
-                let name = item[Entertainment.Mapping.name] else { continue }
-            
-            entertainments.append(Entertainment(id: id, name: name))
-        }
         return entertainments
     }
     
@@ -67,10 +59,15 @@ extension NetworkManager {
     }
 }
 
+struct Str: Decodable {
+    let id: String
+    let namedd: String
+}
+
 // MARK: - fetching details of Entertainment
 extension NetworkManager {
     
-    func fetchEntertainmentDetails(forEntertainmentId id: Int, completion: @escaping (DetailedEntertainment?) -> Void) {
+    func fetchEntertainmentDetails(forEntertainmentId id: String, completion: @escaping (DetailedEntertainment?) -> Void) {
         
         guard let entertainmentURL = getEntertainmentDetailsURL(forEntertainmentId: id) else { return }
         
@@ -98,33 +95,34 @@ extension NetworkManager {
             return nil
         }
         
-        guard let json = try? JSONSerialization.jsonObject(with: data, options: []), let jsonResults = json as? [[String: String]] else {
-            print("Error processing entertainment: failed to convert data to JSON")
+        guard let detailedIntertainments = try? JSONDecoder().decode([DetailedEntertainment].self, from: data) else {
+            print("Error processing entertainment: failed to convert data via JSONDecoder")
             return nil
         }
         
-        var detailedEntertainments = [DetailedEntertainment]()
-        
-        for item in jsonResults {
-            guard let stringId = item[DetailedEntertainment.Mapping.id], let id = Int(stringId),
-                let name = item[DetailedEntertainment.Mapping.name],
-                let descr = item[DetailedEntertainment.Mapping.description] else { continue }
+        switch detailedIntertainments.count {
             
-            detailedEntertainments.append(DetailedEntertainment(id: id, name: name, description: descr))
+        case 0:
+            print("Warning processing entertainment: empty results")
+            return nil
+            
+        case 2...:
+            print("Warning processing entertainment: more than 1 result")
+            fallthrough
+            
+        case 1:
+            return detailedIntertainments.first
+            
+        default:
+            return nil
         }
-        
-        if detailedEntertainments.count > 1 {
-            print("Warning processing entertainment: JSON contains more 1 result")
-        }
-        
-        return detailedEntertainments.first
     }
     
-    private func getEntertainmentDetailsURL(forEntertainmentId id: Int) -> URL? {
+    private func getEntertainmentDetailsURL(forEntertainmentId id: String) -> URL? {
         
-        guard let stringId = String(id).addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else { return nil }
+        guard let id = id.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) else { return nil }
         
-        let URLString = "http://megakohz.bget.ru/test.php?id=\(stringId)"
+        let URLString = "http://megakohz.bget.ru/test.php?id=\(id)"
         
         return URL(string: URLString)
     }

@@ -6,14 +6,8 @@
 //  Copyright © 2019 dev. All rights reserved.
 //
 
-struct DetailedEntertainment {
-    let id: Int
+struct DetailedEntertainment: Decodable {
+    let id: String
     let name: String
     let description: String
-    
-    struct Mapping {
-        static let id = "id"
-        static let name = "name"
-        static let description = "description"
-    }
 }
